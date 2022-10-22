@@ -137,13 +137,6 @@ int main( int argc, char * argv[] )
 
     stopClock( ) ;
 
-    pthread_join( message_receiver_tid, NULL ) ;
-
-    for( i = 0; i < num_threads; i++ )
-    {
-      pthread_join( decryptor_tid[i], NULL ) ;
-    }
-
     for( i = 0; i < BUFFER_SIZE; i++ )
     {
         free( message_buffer[i] ) ;

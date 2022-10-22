@@ -58,6 +58,7 @@ int initializeSchedule( char * filename )
   readSchedule     ( filename ) ;    
   initializeClock  ( ONE_SECOND ) ;
   registerWithClock( tick ) ;
+  return 0;
 }
 
 int readSchedule( char * schedule_file )
@@ -70,8 +71,6 @@ int readSchedule( char * schedule_file )
     printf( "Could not open schedule file: %s\n", schedule_file ) ;
     exit( 0 ) ;
   }
-
-  int i = 0;
 
   char * time_string = ( char * ) malloc( sizeof( char ) * MAX_TIME_DIGITS ) ;
   char * filename = ( char * ) malloc ( sizeof( char ) * MAX_SCHEDULE_FILENAME_SIZE ) ;
@@ -112,6 +111,7 @@ int readSchedule( char * schedule_file )
 
   free( time_string ) ;
   free( filename ) ;
+  return 0;
 }
 
 int freeSchedule( void )
