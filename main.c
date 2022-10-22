@@ -10,7 +10,7 @@
 
 #define MAX_NUM_THREADS 1024 
 #define MAX_FILENAME_LENGTH 255
-#define BUFFER_SIZE 148
+#define BUFFER_SIZE 6
 
 static char * message_buffer[BUFFER_SIZE];
 static int count ;
