@@ -59,6 +59,7 @@ void * receiver_thread( void * args )
       insertMessage( message_file ) ;
     }
   }
+  return NULL;
 }
 
 void * decryptor_thread( void * args )
@@ -75,10 +76,10 @@ void * decryptor_thread( void * args )
 
     removeMessage( message );
 
-    strncpy( input_filename, "ciphertext/", strlen( "ciphertext/" ) ) ;
+    strncpy( input_filename, "ciphertext/", strlen( "ciphertext/" )+1 ) ;
     strcat ( input_filename, message );
 
-    strncpy( output_filename, "results/", strlen( "results/" ) ) ;
+    strncpy( output_filename, "results/", strlen( "results/" )+1 ) ;
     strcat ( output_filename, message );
     output_filename[ strlen( output_filename ) - 8 ] = '\0';
     strcat ( output_filename, ".txt" );
@@ -89,6 +90,7 @@ void * decryptor_thread( void * args )
     free( output_filename ) ;
     free( message ) ;
   }
+  return NULL ;
 }
 
 int main( int argc, char * argv[] )
@@ -98,7 +100,6 @@ int main( int argc, char * argv[] )
       printf("Usage: ./a.out [number of threads]\n") ;
     }
     int num_threads = atoi( argv[1] ) ;
-    pthread_t tid[ MAX_NUM_THREADS ] ;
 
     // initialize the message buffer
     int i ;
