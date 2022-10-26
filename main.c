@@ -74,7 +74,7 @@ void * decryptor_thread( void * args )
     memset( input_filename,  0, MAX_FILENAME_LENGTH ) ;
     memset( output_filename, 0, MAX_FILENAME_LENGTH ) ;
 
-    removeMessage( message );
+    //removeMessage( message );
 
     strncpy( input_filename, "ciphertext/", strlen( "ciphertext/" )+1 ) ;
     strcat ( input_filename, message );
