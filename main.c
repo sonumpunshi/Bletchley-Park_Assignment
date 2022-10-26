@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include "clock.h"
+#include <semaphore.h>
 
 #define MAX_NUM_THREADS 1024 
 #define MAX_FILENAME_LENGTH 255
@@ -16,88 +17,98 @@ static char * message_buffer[BUFFER_SIZE];
 static int count ;
 static int running = 1 ;
 
+sem_t dlock;
 pthread_t message_receiver_tid ;
 pthread_t decryptor_tid[ MAX_NUM_THREADS ] ;
 
 static void handleSIGUSR2( int sig )
 {
-  printf("Time to shutdown\n");
-  running = 0 ;
+    printf("Time to shutdown\n");
+    running = 0 ;
 }
 
 int insertMessage( char * message )
 {
-  assert( count < BUFFER_SIZE && "Tried to add a message to a full buffer");
-  strncpy( message_buffer[count] , message, MAX_FILENAME_LENGTH ); 
-  count++;
+    assert( count < BUFFER_SIZE && "Tried to add a message to a full buffer");
+    strncpy( message_buffer[count] , message, MAX_FILENAME_LENGTH );
+
+    count++;
   
-  return 0;
+    return 0;
 }
 
 int removeMessage( char *message )
 {
-  assert( count && "Tried to remove a message from an empty buffer");
-  strncpy( message, message_buffer[count-1], MAX_FILENAME_LENGTH ); 
-  count--;
-
-  return 0;
+    if(count > 0){
+        assert( count && "Tried to remove a message from an empty buffer");
+        strncpy( message, message_buffer[count-1], MAX_FILENAME_LENGTH );
+        count--;
+        
+    }
+    return 0;
 }
 
 static void * tick ( void ) 
 {
-   return NULL ;
+    return NULL ;
 }
 
 void * receiver_thread( void * args )
-{
-  while( running )
-  {
-    char * message_file = retrieveReceivedMessages( );
-
-    if( message_file )
-    {
-      insertMessage( message_file ) ;
+{    
+    while( running )
+    {      
+        if(count < BUFFER_SIZE)
+        {        
+            char * message_file = retrieveReceivedMessages( );
+            if(message_file)
+                insertMessage( message_file ) ;
+        }
     }
-  }
-  return NULL;
+    return NULL;
 }
 
 void * decryptor_thread( void * args )
 {
-  while( running )
-  {
-    char * input_filename  = ( char * ) malloc ( sizeof( char ) * MAX_FILENAME_LENGTH ) ;
-    char * output_filename  = ( char * ) malloc ( sizeof( char ) * MAX_FILENAME_LENGTH ) ;
-    char * message = ( char * ) malloc ( sizeof( char ) * MAX_FILENAME_LENGTH ) ;
+    while( running )
+    {
+        
+        char * input_filename  = ( char * ) malloc ( sizeof( char ) * MAX_FILENAME_LENGTH ) ;
+        char * output_filename  = ( char * ) malloc ( sizeof( char ) * MAX_FILENAME_LENGTH ) ;
+        char * message = ( char * ) malloc ( sizeof( char ) * MAX_FILENAME_LENGTH ) ;
 
-    memset( message,         0, MAX_FILENAME_LENGTH ) ;
-    memset( input_filename,  0, MAX_FILENAME_LENGTH ) ;
-    memset( output_filename, 0, MAX_FILENAME_LENGTH ) ;
+        memset( message,         0, MAX_FILENAME_LENGTH ) ;
+        memset( input_filename,  0, MAX_FILENAME_LENGTH ) ;
+        memset( output_filename, 0, MAX_FILENAME_LENGTH ) ;            
+        if(count > 0){
+            sem_wait(&dlock);
+            removeMessage( message );
+            sem_post(&dlock);
+            //printf("%s\n",message);        
 
-    //removeMessage( message );
+            strncpy( input_filename, "ciphertext/", strlen( "ciphertext/" )+1 ) ;
+            strcat ( input_filename, message );
 
-    strncpy( input_filename, "ciphertext/", strlen( "ciphertext/" )+1 ) ;
-    strcat ( input_filename, message );
+            strncpy( output_filename, "results/", strlen( "results/" )+1 ) ;
+            strcat ( output_filename, message );
+            output_filename[ strlen( output_filename ) - 8 ] = '\0';
+            strcat ( output_filename, ".txt" );
 
-    strncpy( output_filename, "results/", strlen( "results/" )+1 ) ;
-    strcat ( output_filename, message );
-    output_filename[ strlen( output_filename ) - 8 ] = '\0';
-    strcat ( output_filename, ".txt" );
-
-    decryptFile( input_filename, output_filename );
-
-    free( input_filename ) ;
-    free( output_filename ) ;
-    free( message ) ;
-  }
-  return NULL ;
+            decryptFile( input_filename, output_filename );                
+            free( input_filename ) ;
+            free( output_filename ) ;
+            free( message ) ;
+        }
+    }
+    return NULL ;
 }
+
 
 int main( int argc, char * argv[] )
 {
+    sem_init(&dlock, 0, 1);
     if( argc != 2 )
     {
-      printf("Usage: ./a.out [number of threads]\n") ;
+        printf("Usage: ./a.out [number of threads]\n") ;
     }
     int num_threads = atoi( argv[1] ) ;
 
@@ -116,8 +127,8 @@ int main( int argc, char * argv[] )
 
     if ( sigaction( SIGUSR2, &act, NULL ) < 0 )  
     {
-      perror ( "sigaction: " ) ;
-      return 0;
+        perror ( "sigaction: " ) ;
+        return 0;
     }
 
     initializeClock( ONE_SECOND ) ;
@@ -129,7 +140,7 @@ int main( int argc, char * argv[] )
 
     for( i = 0; i < num_threads; i++ )
     {
-      pthread_create( & decryptor_tid[i], NULL, decryptor_thread, NULL ) ;
+        pthread_create( & decryptor_tid[i], NULL, decryptor_thread, NULL ) ;
     }
 
     startClock( ) ;
