@@ -29,9 +29,10 @@ static void handleSIGUSR2( int sig )
 
 int insertMessage( char * message )
 {
+    
     assert( count < BUFFER_SIZE && "Tried to add a message to a full buffer");
     strncpy( message_buffer[count] , message, MAX_FILENAME_LENGTH );
-
+    
     count++;
   
     return 0;
@@ -39,12 +40,12 @@ int insertMessage( char * message )
 
 int removeMessage( char *message )
 {
-    if(count > 0){
-        assert( count && "Tried to remove a message from an empty buffer");
+        assert( count && "Tried to remove a message from an empty buffer");        
         strncpy( message, message_buffer[count-1], MAX_FILENAME_LENGTH );
+        sem_wait(&dlock);
         count--;
+        sem_post(&dlock);
         
-    }
     return 0;
 }
 
@@ -71,18 +72,15 @@ void * decryptor_thread( void * args )
 {
     while( running )
     {
-        
+        if(count > 0){
         char * input_filename  = ( char * ) malloc ( sizeof( char ) * MAX_FILENAME_LENGTH ) ;
         char * output_filename  = ( char * ) malloc ( sizeof( char ) * MAX_FILENAME_LENGTH ) ;
         char * message = ( char * ) malloc ( sizeof( char ) * MAX_FILENAME_LENGTH ) ;
 
         memset( message,         0, MAX_FILENAME_LENGTH ) ;
         memset( input_filename,  0, MAX_FILENAME_LENGTH ) ;
-        memset( output_filename, 0, MAX_FILENAME_LENGTH ) ;            
-        if(count > 0){
-            sem_wait(&dlock);
+        memset( output_filename, 0, MAX_FILENAME_LENGTH ) ;                    
             removeMessage( message );
-            sem_post(&dlock);
             //printf("%s\n",message);        
 
             strncpy( input_filename, "ciphertext/", strlen( "ciphertext/" )+1 ) ;
@@ -101,7 +99,6 @@ void * decryptor_thread( void * args )
     }
     return NULL ;
 }
-
 
 int main( int argc, char * argv[] )
 {
